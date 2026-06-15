@@ -41,7 +41,6 @@
   healthy/dense vegetation ranges) for classifier thresholds
 
 ## June 13, 2026
-- Set up Claude Code (native Windows install), connected to leaf-guardian repo
 - Built `combine_maps.py`:
   - `combine_health_maps()` averages RGB and NDVI grid scores into a 
     combined health map
