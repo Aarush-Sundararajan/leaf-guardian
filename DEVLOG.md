@@ -40,7 +40,7 @@
 - Established NDVI interpretation reference table (water/bare/stressed/
   healthy/dense vegetation ranges) for classifier thresholds
 
-## June 13, 2026
+## June 15, 2026
 - Built `combine_maps.py`:
   - `combine_health_maps()` averages RGB and NDVI grid scores into a 
     combined health map
