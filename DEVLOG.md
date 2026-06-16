@@ -64,3 +64,23 @@
   while NDVI correctly identifies it as non-vegetation (water). 
   Demonstrates a concrete case where NIR-based classification outperforms 
   visible-color classification — candidate finding for methodology writeup
+
+ ## June 16, 2026
+
+Spent today fixing yesterday's water problem and cleaning up the project structure.
+
+The fix for the green water misclassification was simpler than expected — added a saturation check (s > 80) to the green mask in rgb_health.py. Turns out water and algae-tinted surfaces share the same hue range as healthy leaves (35-85), but they're washed out compared to actual foliage. The saturation filter catches that difference and it worked without breaking detection on real plants.
+
+Also reorganized the data folder since things were getting messy — split sentinel_data into color_images, grid_analyses, and combined_maps subfolders instead of everything dumped in one place. Pulled the cropping logic that was duplicated between sentinel_ndvi.py and sentinel_rgb.py into one shared function (sentinel_utils.py) so both scripts crop the exact same area every time — no more wondering if NDVI and RGB are actually looking at the same patch of ground.
+
+Re-centered the crop again (37.552707N, 122.092559W) but it's still picking up some bay water — mean NDVI came out to 0.122. Decided not to keep chasing a "clean" crop with zero water, since CA LEAF sites near wetlands probably look like this too. Better to deal with it honestly than pretend it away.
+
+The actual useful output today was figuring out what the discrepancy map is telling us. Wrote it down as a simple rule of thumb:
+- High NDVI but low RGB = dry grass (the NIR signal sticks around even after it stops looking green)
+- High RGB but low NDVI = probably still some misclassification, or small shrubs not filling a whole satellite cell
+- Both high = real healthy vegetation
+- Both low = bare ground, pavement, or water
+
+That gives the discrepancy layer an actual explanation instead of just being "two numbers that don't match."
+
+Also wrote the Tello mission script today even without the drone in hand. It flies a basic 4-point square and logs battery levels to a JSON file. Since the drone doesn't arrive until the 26th, built a fake MockTello class that pretends to connect, take off, fly, and land so I could test the whole script logic now. When the real drone shows up it should just be a one-flag change (--real) to switch from mock to live.
