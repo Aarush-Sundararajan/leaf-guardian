@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-06-16T18:48:18.500745Z",
+  "battery_start": 85,
+  "battery_end": 81,
+  "battery_used": 4,
+  "duration_seconds": 0.6,
+  "pattern": "square_50cm",
+  "waypoints": [
+    {
+      "direction": "forward",
+      "distance_cm": 50
+    },
+    {
+      "direction": "right",
+      "distance_cm": 50
+    },
+    {
+      "direction": "back",
+      "distance_cm": 50
+    },
+    {
+      "direction": "left",
+      "distance_cm": 50
+    }
+  ]
+}

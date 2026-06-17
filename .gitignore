@@ -1,2 +1,4 @@
 data/sentinel_data/*.tif
 data/sentinel_data/*.tif
+__pycache__/
+data/sentinel_data/2022_aug/

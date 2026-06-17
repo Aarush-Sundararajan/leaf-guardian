@@ -1,0 +1,70 @@
+{
+  "timestamp": "2026-06-17T17:17:05.661046Z",
+  "battery_start": 85,
+  "battery_end": 77,
+  "battery_used": 8,
+  "duration_seconds": 0.6,
+  "pattern": "lawnmower_3x3_50cm",
+  "grid": {
+    "rows": 3,
+    "cols": 3,
+    "step_cm": 50
+  },
+  "waypoints_flown": 9,
+  "photos": [
+    {
+      "waypoint_idx": 0,
+      "row": 0,
+      "col": 0,
+      "filename": "data/drone_imagery/survey_r00_c00.jpg"
+    },
+    {
+      "waypoint_idx": 1,
+      "row": 1,
+      "col": 0,
+      "filename": "data/drone_imagery/survey_r01_c00.jpg"
+    },
+    {
+      "waypoint_idx": 2,
+      "row": 2,
+      "col": 0,
+      "filename": "data/drone_imagery/survey_r02_c00.jpg"
+    },
+    {
+      "waypoint_idx": 3,
+      "row": 2,
+      "col": 1,
+      "filename": "data/drone_imagery/survey_r02_c01.jpg"
+    },
+    {
+      "waypoint_idx": 4,
+      "row": 1,
+      "col": 1,
+      "filename": "data/drone_imagery/survey_r01_c01.jpg"
+    },
+    {
+      "waypoint_idx": 5,
+      "row": 0,
+      "col": 1,
+      "filename": "data/drone_imagery/survey_r00_c01.jpg"
+    },
+    {
+      "waypoint_idx": 6,
+      "row": 0,
+      "col": 2,
+      "filename": "data/drone_imagery/survey_r00_c02.jpg"
+    },
+    {
+      "waypoint_idx": 7,
+      "row": 1,
+      "col": 2,
+      "filename": "data/drone_imagery/survey_r01_c02.jpg"
+    },
+    {
+      "waypoint_idx": 8,
+      "row": 2,
+      "col": 2,
+      "filename": "data/drone_imagery/survey_r02_c02.jpg"
+    }
+  ]
+}
