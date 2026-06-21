@@ -1,61 +1,72 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+LEAF Guardian monitors native plant health at restoration sites by combining Sentinel-2 satellite imagery with DJI Tello drone photos. The satellite pipeline computes NDVI and ExG-based green scores on a 9×9 grid over a 2 km crop of the target site; the drone pipeline flies a lawnmower survey, stitches the photos, and scores plant health via HSV classification. Both pipelines produce a 0–1 score per grid cell that feeds into `combine_health_maps()`.
 
-## Project Overview
+---
 
-leaf-guardian is an autonomous drone system for native plant health monitoring at ecological restoration sites. It fuses two data sources:
-- **Sentinel-2 satellite imagery** — multi-spectral bands used to compute NDVI
-- **Tello drone RGB imagery** — ground-level photos analyzed via HSV color classification
+## Scripts
 
-## Running Scripts
+All scripts must be run from the **repo root** — data paths are relative.
 
-All scripts must be run from the **repo root** because data paths are relative (e.g., `data/sentinel_data/...`).
+| Script | What it does |
+|---|---|
+| `software/ndvi_pipeline/run_combined.py` | Orchestrator: runs sentinel_rgb → sentinel_ndvi → combine in one shot |
+| `software/ndvi_pipeline/sentinel_ndvi.py` | Reads Sentinel-2 B04/B08, computes NDVI, saves full-res map + scored grid |
+| `software/ndvi_pipeline/sentinel_rgb.py` | Reads Sentinel-2 B04/B03/B02, computes ExG health grid + true-color composite |
+| `software/ndvi_pipeline/combine_maps.py` | Averages RGB + NDVI scores cell-by-cell; adds discrepancy layer |
+| `software/ndvi_pipeline/rgb_health.py` | Standalone: scores a single drone JPEG using HSV green/brown ratios |
+| `software/ndvi_pipeline/stitch_grid.py` | Stitches a folder of row.col.jpg tiles into a composite and runs health analysis |
+| `software/ndvi_pipeline/sentinel_utils.py` | Shared utility: `crop_band()` for windowed Sentinel-2 reads (used by ndvi + rgb) |
+| `software/ndvi_pipeline/compare_saturation_filter.py` | One-off: before/after comparison of the saturation filter on rgb_health |
+| `software/tello_control/waypoint_mission.py` | Lawnmower drone survey (MockTello by default, `--real` for live hardware); auto-stitches after landing |
 
-```bash
-# Compute NDVI from Sentinel-2 bands and generate health grid map
-python software/ndvi_pipeline/sentinel_ndvi.py
+---
 
-# Compute RGB health grid from drone imagery
-python software/ndvi_pipeline/rgb_health.py
+## Naming conventions
+
+- **Drone photos**: `<row>.<col>.jpg` with 1-based indexing — top-left tile is `1.1.jpg`, bottom-right of a 3×3 is `3.3.jpg`. `stitch_grid.py` auto-detects grid dimensions from the highest row/col it finds.
+- **Labels**: short strings passed to each pipeline function (e.g., `2022-Aug-CoyoteHills`) that appear verbatim in output filenames — `ndvi_grid_2022-Aug-CoyoteHills.png`, `combined_map_2022-Aug-CoyoteHills.png`, etc.
+- **Flight logs**: `flight_<YYYYMMDDTHHMMSS>.json` written to `data/flight_logs/` after each mission.
+
+---
+
+## Hardware dependencies
+
+Two parts of the codebase require physical hardware and cannot be exercised otherwise:
+
+1. **`capture_photo_real()`** in `waypoint_mission.py` — grabs a live BGR frame from the Tello video stream via `tello.get_frame_read().frame`; requires `tello.streamon()` to have been called before takeoff and the laptop to be on the Tello Wi-Fi network.
+2. **NoIR NDVI capture** — planned feature: a Pi NoIR camera mounted on the drone for in-flight near-infrared imaging without relying on Sentinel-2. Not yet implemented.
+
+Everything else runs without hardware. The MockTello in `waypoint_mission.py` simulates connect, takeoff, moves, and landing, and writes real JPEG placeholders so the full stitch pipeline can be tested end-to-end.
+
+---
+
+## June 26 hardware test
+
+First live flight with the real Tello. Key things to verify before trusting `capture_photo_real()` in production:
+
+- Give `streamon()` 1–2 s to stabilise before the first move command
+- Move commands are blocking but the drone may still be decelerating when `get_frame_read()` is called — add a short sleep if captures are blurry
+- Check JPEG saturation fidelity against HSV scoring thresholds (green H 35–85, S > 80)
+
+See [docs/first_flight_plan.md](docs/first_flight_plan.md) for the full checklist.
+
+---
+
+## Data layout
+
 ```
-
-Scripts are not importable modules — each has a hardcoded entry-point call at the bottom that should be updated to point at the target data files before running.
-
-## Dependencies
-
-```bash
-pip install numpy matplotlib rasterio opencv-python djitellopy
+data/
+├── sentinel_data/
+│   ├── 2022_aug/          # Raw .jp2 band files (B02, B03, B04, B08)
+│   ├── color_images/      # Full-scene NDVI map and true-color composite PNGs
+│   ├── grid_analyses/     # Scored grid PNGs (NDVI grid + satellite RGB grid)
+│   └── combined_maps/     # Fused combined score + discrepancy PNGs
+├── drone_imagery/
+│   ├── test/              # Single test photos for rgb_health.py
+│   ├── grid_test/         # 2×2 real photo grid + stitched_results/
+│   └── survey/            # 3×3 mock mission output + stitched_results/
+└── flight_logs/           # JSON flight logs written by waypoint_mission.py
 ```
-
-- `rasterio` — reads Sentinel-2 `.jp2` band files
-- `cv2` (opencv-python) — reads drone `.jpg` images and converts BGR→HSV
-- `djitellopy` — Tello drone SDK (used in `software/tello_control/`, not yet implemented)
-
-## Architecture
-
-### NDVI Pipeline (`software/ndvi_pipeline/sentinel_ndvi.py`)
-
-1. **`compute_ndvi(red_path, nir_path, label, grid_size)`** — reads Sentinel-2 B04 (Red) and B08 (NIR) `.jp2` files, divides raw DN values by 10000 (Sentinel-2 surface reflectance scaling factor), computes NDVI = `(NIR - Red) / (NIR + Red + 1e-10)`, saves a full NDVI map PNG, then calls `ndvi_health_grid`.
-2. **`ndvi_health_grid(ndvi_array, grid_size, label)`** — divides the NDVI array into an NxN grid, scores each cell as `clip(mean_ndvi, 0, 0.8) / 0.8` (0–1 scale), and saves a color-coded grid PNG to `data/sentinel_data/`.
-
-### RGB Pipeline (`software/ndvi_pipeline/rgb_health.py`)
-
-1. **`rgb_health_grid(image_path, grid_size, label)`** — loads a drone photo, converts BGR→HSV, divides into NxN cells, scores each via `rgb_cell_score`.
-2. **`rgb_cell_score(hsv_cell)`** — classifies pixels as green (H: 35–85) or brown (H: 10–35), filters out shadows (V ≤ 30) and sky (H: 90–130 with high saturation), returns `green / (green + brown)`.
-
-Output PNGs go to `data/drone_imagery/`.
-
-### Planned: Tello Control (`software/tello_control/`)
-
-Empty placeholder. Will use `djitellopy` to automate flight paths over restoration sites and capture imagery for the RGB pipeline.
-
-## Data Layout
-
-- `data/sentinel_data/2022_aug/` — Sentinel-2 `.jp2` band files (B04=Red, B08=NIR)
-- `data/sentinel_data/*.png` — NDVI map and grid outputs
-- `data/drone_imagery/test/` — raw Tello/phone camera `.jpg` images
-- `data/drone_imagery/*.png` — RGB health grid outputs
-- `data/flight_logs/` — placeholder for Tello flight logs
 
 Large `.tif` files are gitignored.
