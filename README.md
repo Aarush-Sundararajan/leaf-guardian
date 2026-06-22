@@ -11,9 +11,8 @@ field visits. Published research confirms 96% of restoration
 projects only monitor short-term changes.
 
 ## Approach
-Combines autonomous drone NDVI imaging with historical 
-Sentinel-2 satellite data to produce longitudinal vegetation 
-health maps — without requiring multiple site visits.
+Combines autonomous navigation and camrea imaging for both RGB and NDVI color spectrums, providing accurate health analysis
+by analyzing the seperate color channels and then merging the results and displaying the differnce between both
 
 ## Hardware
 - DJI Tello — software development and indoor testing (arriving soon)
@@ -40,9 +39,6 @@ health maps — without requiring multiple site visits.
 
 ## Partner Organization
 CA LEAF — California native plant restoration (outreach initiated June 2026)
-
-## Status
-🟡 In active development — Summer 2026
 
 ## Competition Targets
 - Regeneron STS — November 2026
