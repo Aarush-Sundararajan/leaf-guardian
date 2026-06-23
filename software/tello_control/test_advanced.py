@@ -24,6 +24,7 @@ took_off = False
 try:
     print('Connecting to Tello...')
     drone.connect()
+    time.sleep(2)
     battery_start = drone.get_battery()
     print(f'Battery: {battery_start}%')
 
