@@ -56,6 +56,10 @@ try:
 
     print('Rotating clockwise 360 degrees...')
     drone.rotate_clockwise(360)
+    time.sleep(3)
+
+    print('Restoring safe flip altitude before flip 3 (move_up 40 cm)...')
+    drone.move_up(40)
     time.sleep(2)
 
     print('Flip 3 of 3: flipping back...')

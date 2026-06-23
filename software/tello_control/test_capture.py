@@ -14,10 +14,12 @@ import os
 import time
 
 import cv2
+import numpy as np
 from djitellopy import Tello
 
 _REPO_ROOT  = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUTPUT_PATH = os.path.join(_REPO_ROOT, 'data', 'drone_imagery', 'test_capture.jpg')
+RAW_PATH    = os.path.join(_REPO_ROOT, 'data', 'drone_imagery', 'test_capture_raw.jpg')
 
 STREAM_INIT_S  = 4   # streamon() needs 5-6 s total; 4 s before takeoff + 3 s after
 STABILISE_S    = 3
@@ -71,9 +73,23 @@ try:
         )
 
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
-    cv2.imwrite(OUTPUT_PATH, frame)
-    h, w = frame.shape[:2]
-    print(f'Saved to {OUTPUT_PATH}  ({w}x{h} px, mean pixel value: {mean_val:.1f})')
+    cv2.imwrite(RAW_PATH, frame)
+    print(f'Raw frame saved to {RAW_PATH}')
+
+    # Gray-world white balance: scale each channel so its mean matches the
+    # average of all three channel means, then clip back to uint8.
+    b, g, r   = cv2.split(frame)
+    b_mean, g_mean, r_mean = float(b.mean()), float(g.mean()), float(r.mean())
+    overall   = (b_mean + g_mean + r_mean) / 3.0
+    b_wb = np.clip(b.astype(float) * (overall / b_mean), 0, 255).astype('uint8')
+    g_wb = np.clip(g.astype(float) * (overall / g_mean), 0, 255).astype('uint8')
+    r_wb = np.clip(r.astype(float) * (overall / r_mean), 0, 255).astype('uint8')
+    frame_wb  = cv2.merge([b_wb, g_wb, r_wb])
+
+    cv2.imwrite(OUTPUT_PATH, frame_wb)
+    h, w = frame_wb.shape[:2]
+    print(f'White-balanced frame saved to {OUTPUT_PATH}  '
+          f'({w}x{h} px, mean pixel value: {mean_val:.1f})')
 
     print('Landing...')
     drone.land()
