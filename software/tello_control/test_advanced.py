@@ -11,6 +11,7 @@ Usage (from repo root):
     py software/tello_control/test_advanced.py
 """
 
+import sys
 import time
 from djitellopy import Tello
 
@@ -26,13 +27,18 @@ try:
     battery_start = drone.get_battery()
     print(f'Battery: {battery_start}%')
 
+    if battery_start < 50:
+        print(f'WARNING: Battery is {battery_start}%. Flips may be disabled below 50%. '
+              f'Charge to 80%+ before running this script.')
+        sys.exit(1)
+
     print('Taking off...')
     drone.takeoff()
     took_off = True
 
     print('Ascending 60 cm to reach safe flip altitude...')
     drone.move_up(60)
-    time.sleep(2)
+    time.sleep(3)
 
     print('Flip 1 of 3: flipping forward...')
     drone.set_speed(FLIP_SPEED)
