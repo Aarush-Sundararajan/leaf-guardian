@@ -19,8 +19,11 @@ from djitellopy import Tello
 _REPO_ROOT  = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUTPUT_PATH = os.path.join(_REPO_ROOT, 'data', 'drone_imagery', 'test_capture.jpg')
 
-STREAM_INIT_S  = 2
+STREAM_INIT_S  = 4   # streamon() needs 5-6 s total; 4 s before takeoff + 3 s after
 STABILISE_S    = 3
+FLUSH_S        = 3   # discard the first few seconds of frames (often black/corrupt)
+MAX_WAIT_S     = 5   # max extra time to wait for a non-black frame after flushing
+MIN_MEAN       = 10  # frames with mean pixel value <= this are treated as black
 
 drone     = Tello()
 streaming = False
@@ -46,12 +49,31 @@ try:
     print(f'Stabilising ({STABILISE_S}s)...')
     time.sleep(STABILISE_S)
 
-    print('Capturing frame...')
-    frame = drone.get_frame_read().frame
+    print(f'Flushing initial frames ({FLUSH_S}s)...')
+    t_flush = time.monotonic()
+    while time.monotonic() - t_flush < FLUSH_S:
+        drone.get_frame_read().frame
+
+    print(f'Waiting for a non-black frame (mean > {MIN_MEAN}, up to {MAX_WAIT_S}s)...')
+    frame = None
+    mean_val = 0.0
+    t_wait = time.monotonic()
+    while time.monotonic() - t_wait < MAX_WAIT_S:
+        candidate = drone.get_frame_read().frame
+        mean_val = float(candidate.mean())
+        if mean_val > MIN_MEAN:
+            frame = candidate
+            break
+
+    if frame is None:
+        raise RuntimeError(
+            f'No valid frame after {FLUSH_S + MAX_WAIT_S}s — stream may be stuck'
+        )
+
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     cv2.imwrite(OUTPUT_PATH, frame)
     h, w = frame.shape[:2]
-    print(f'Saved to {OUTPUT_PATH}  ({w}x{h} px)')
+    print(f'Saved to {OUTPUT_PATH}  ({w}x{h} px, mean pixel value: {mean_val:.1f})')
 
     print('Landing...')
     drone.land()
