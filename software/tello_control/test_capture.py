@@ -17,9 +17,20 @@ import cv2
 import numpy as np
 from djitellopy import Tello
 
-_REPO_ROOT  = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
-OUTPUT_PATH = os.path.join(_REPO_ROOT, 'data', 'drone_imagery', 'test_capture.jpg')
-RAW_PATH    = os.path.join(_REPO_ROOT, 'data', 'drone_imagery', 'test_capture_raw.jpg')
+_REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
+_IMG_DIR   = os.path.join(_REPO_ROOT, 'data', 'drone_imagery')
+RAW_PATH   = os.path.join(_IMG_DIR, 'test_capture_raw.jpg')
+PATH_A     = os.path.join(_IMG_DIR, 'test_capture_methodA.jpg')
+PATH_B     = os.path.join(_IMG_DIR, 'test_capture_methodB.jpg')
+PATH_C     = os.path.join(_IMG_DIR, 'test_capture_methodC.jpg')
+
+
+def _stretch(ch):
+    """Per-channel histogram stretch: map 2nd–98th percentile to 0–255."""
+    lo, hi = float(np.percentile(ch, 2)), float(np.percentile(ch, 98))
+    if hi <= lo:
+        return ch.copy()
+    return np.clip((ch.astype(float) - lo) / (hi - lo) * 255, 0, 255).astype('uint8')
 
 STREAM_INIT_S  = 4   # streamon() needs 5-6 s total; 4 s before takeoff + 3 s after
 STABILISE_S    = 3
@@ -72,24 +83,35 @@ try:
             f'No valid frame after {FLUSH_S + MAX_WAIT_S}s — stream may be stuck'
         )
 
-    os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
+    os.makedirs(_IMG_DIR, exist_ok=True)
+    b, g, r = cv2.split(frame)
+    h, w    = frame.shape[:2]
+    print(f'Raw channel means — R: {r.mean():.1f}  G: {g.mean():.1f}  B: {b.mean():.1f}  '
+          f'(overall mean: {mean_val:.1f})  [{w}x{h}]')
+
     cv2.imwrite(RAW_PATH, frame)
-    print(f'Raw frame saved to {RAW_PATH}')
+    print(f'Raw saved to {RAW_PATH}')
 
-    # Gray-world white balance: scale each channel so its mean matches the
-    # average of all three channel means, then clip back to uint8.
-    b, g, r   = cv2.split(frame)
-    b_mean, g_mean, r_mean = float(b.mean()), float(g.mean()), float(r.mean())
-    overall   = (b_mean + g_mean + r_mean) / 3.0
-    b_wb = np.clip(b.astype(float) * (overall / b_mean), 0, 255).astype('uint8')
-    g_wb = np.clip(g.astype(float) * (overall / g_mean), 0, 255).astype('uint8')
-    r_wb = np.clip(r.astype(float) * (overall / r_mean), 0, 255).astype('uint8')
-    frame_wb  = cv2.merge([b_wb, g_wb, r_wb])
+    # Method A: empirical Tello-specific scaling (R×1.8, G×1.2, B×0.7)
+    method_a = cv2.merge([
+        np.clip(b.astype(float) * 0.7, 0, 255).astype('uint8'),
+        np.clip(g.astype(float) * 1.2, 0, 255).astype('uint8'),
+        np.clip(r.astype(float) * 1.8, 0, 255).astype('uint8'),
+    ])
+    cv2.imwrite(PATH_A, method_a)
+    print(f'Method A (manual R×1.8 G×1.2 B×0.7) saved to {PATH_A}')
 
-    cv2.imwrite(OUTPUT_PATH, frame_wb)
-    h, w = frame_wb.shape[:2]
-    print(f'White-balanced frame saved to {OUTPUT_PATH}  '
-          f'({w}x{h} px, mean pixel value: {mean_val:.1f})')
+    # Method B: per-channel histogram stretch (2nd–98th percentile → 0–255)
+    cv2.imwrite(PATH_B, cv2.merge([_stretch(b), _stretch(g), _stretch(r)]))
+    print(f'Method B (per-channel histogram stretch) saved to {PATH_B}')
+
+    # Method C: LAB color space + CLAHE on L channel only
+    lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+    l, a_ch, b_ch = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    cv2.imwrite(PATH_C, cv2.cvtColor(cv2.merge([clahe.apply(l), a_ch, b_ch]),
+                                      cv2.COLOR_LAB2BGR))
+    print(f'Method C (LAB + CLAHE) saved to {PATH_C}')
 
     print('Landing...')
     drone.land()
