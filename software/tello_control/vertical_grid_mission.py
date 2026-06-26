@@ -206,14 +206,15 @@ try:
         drone.move_left(abs(h_offset))
         time.sleep(2)
 
+    if USE_REAL:
+        print('Stopping video stream before land...')
+        drone.streamoff()
+        streaming = False
+        time.sleep(1)
+
     print('\nLanding...')
     drone.land()
     took_off = False
-
-    if USE_REAL:
-        print('Stopping video stream...')
-        drone.streamoff()
-        streaming = False
 
     battery_end = drone.get_battery()
     print(f'Battery after landing: {battery_end}%  (used {battery - battery_end}%)')
