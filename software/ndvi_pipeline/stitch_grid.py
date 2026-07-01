@@ -22,7 +22,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 import cv2
 import numpy as np
-from rgb_health import rgb_cell_score
+from rgb_health import (combined_cell_score, classify_tier,
+                         TIER_COLORS_BGR, generate_health_report)
 
 # ---------------------------------------------------------------------------
 # 1. Grid detection
@@ -113,9 +114,10 @@ def _score_to_bgr(score):
 def analyze_composite(composite, source_rows, source_cols):
     """Analyse composite health with a (source_rows*3) x (source_cols*3) grid.
 
-    Scores each cell using the same green/brown HSV logic as rgb_health.py,
-    then returns an annotated copy with a semi-transparent colour overlay,
-    grid lines, and per-cell score labels.
+    Each cell is scored using combined_cell_score (HSV ratio + VARI average),
+    classified into a tier, and rendered with a tier-coloured border plus a
+    two-line label (score / tier name). Returns annotated image, score grid,
+    and tier grid.
     """
     analysis_rows = source_rows * 3
     analysis_cols = source_cols * 3
@@ -126,13 +128,17 @@ def analyze_composite(composite, source_rows, source_cols):
 
     hsv    = cv2.cvtColor(composite, cv2.COLOR_BGR2HSV)
     scores = np.zeros((analysis_rows, analysis_cols))
+    tiers  = [[None] * analysis_cols for _ in range(analysis_rows)]
 
     for i in range(analysis_rows):
         for j in range(analysis_cols):
-            cell = hsv[i*cell_h:(i+1)*cell_h, j*cell_w:(j+1)*cell_w]
-            scores[i, j] = rgb_cell_score(cell)
+            y0, x0          = i * cell_h, j * cell_w
+            hsv_cell        = hsv[y0:y0+cell_h, x0:x0+cell_w]
+            bgr_cell        = composite[y0:y0+cell_h, x0:x0+cell_w]
+            scores[i, j]    = combined_cell_score(hsv_cell, bgr_cell)
+            tiers[i][j]     = classify_tier(scores[i, j])
 
-    # --- Build colour overlay ---
+    # --- Score-based heat overlay ---
     overlay = np.zeros_like(composite)
     for i in range(analysis_rows):
         for j in range(analysis_cols):
@@ -141,31 +147,43 @@ def analyze_composite(composite, source_rows, source_cols):
 
     annotated = cv2.addWeighted(composite, 0.55, overlay, 0.45, 0)
 
-    # --- Grid lines ---
-    for i in range(1, analysis_rows):
-        y = i * cell_h
-        cv2.line(annotated, (0, y), (img_w, y), (220, 220, 220), 1)
-    for j in range(1, analysis_cols):
-        x = j * cell_w
-        cv2.line(annotated, (x, 0), (x, img_h), (220, 220, 220), 1)
+    # --- Tier-coloured cell borders ---
+    for i in range(analysis_rows):
+        for j in range(analysis_cols):
+            y0, x0 = i * cell_h, j * cell_w
+            cv2.rectangle(annotated,
+                          (x0, y0), (x0 + cell_w - 1, y0 + cell_h - 1),
+                          TIER_COLORS_BGR[tiers[i][j]], 3)
 
-    # --- Score labels ---
+    # --- Two-line labels: score (white) + tier name (tier colour) ---
     font  = cv2.FONT_HERSHEY_SIMPLEX
-    fs    = max(0.3, min(cell_w, cell_h) / 120)
-    thick = max(1, int(fs * 1.8))
+    fs    = max(0.28, min(cell_w, cell_h) / 140)
+    thick = max(1, int(fs * 1.5))
 
     for i in range(analysis_rows):
         for j in range(analysis_cols):
-            text = f'{scores[i, j]:.2f}'
-            (tw, th), _ = cv2.getTextSize(text, font, fs, thick)
-            tx = j * cell_w + (cell_w - tw) // 2
-            ty = i * cell_h + (cell_h + th) // 2
-            cv2.putText(annotated, text, (tx+1, ty+1), font, fs,
+            y0, x0     = i * cell_h, j * cell_w
+            score_txt  = f'{scores[i, j]:.2f}'
+            tier_txt   = tiers[i][j]
+            tier_color = TIER_COLORS_BGR[tiers[i][j]]
+
+            (sw, sh), _ = cv2.getTextSize(score_txt, font, fs, thick)
+            sx = x0 + (cell_w - sw) // 2
+            sy = y0 + cell_h // 3 + sh // 2
+            cv2.putText(annotated, score_txt, (sx+1, sy+1), font, fs,
                         (0, 0, 0), thick + 1, cv2.LINE_AA)
-            cv2.putText(annotated, text, (tx, ty), font, fs,
+            cv2.putText(annotated, score_txt, (sx, sy), font, fs,
                         (255, 255, 255), thick, cv2.LINE_AA)
 
-    return annotated, scores
+            (tw, th), _ = cv2.getTextSize(tier_txt, font, fs, thick)
+            tx = x0 + (cell_w - tw) // 2
+            ty = y0 + 2 * cell_h // 3 + th // 2
+            cv2.putText(annotated, tier_txt, (tx+1, ty+1), font, fs,
+                        (0, 0, 0), thick + 1, cv2.LINE_AA)
+            cv2.putText(annotated, tier_txt, (tx, ty), font, fs,
+                        tier_color, thick, cv2.LINE_AA)
+
+    return annotated, scores, tiers
 
 
 # ---------------------------------------------------------------------------
@@ -187,13 +205,15 @@ def run(folder, out_dir=None):
     print(f'  Analysis grid: {analysis_rows}x{analysis_cols} '
           f'({analysis_rows*analysis_cols} cells)')
 
-    analyzed, scores = analyze_composite(composite, grid_rows, grid_cols)
+    analyzed, scores, tiers = analyze_composite(composite, grid_rows, grid_cols)
 
     os.makedirs(out_dir, exist_ok=True)
     tag = f'{grid_rows}x{grid_cols}'
 
     comp_path     = os.path.join(out_dir, f'composite_{tag}.png')
     analyzed_path = os.path.join(out_dir, f'analyzed_{tag}.png')
+    label         = os.path.basename(os.path.normpath(folder))
+    report_path   = os.path.join(out_dir, f'health_report_{label}.txt')
 
     cv2.imwrite(comp_path,     composite)
     cv2.imwrite(analyzed_path, analyzed)
@@ -203,6 +223,8 @@ def run(folder, out_dir=None):
 
     mean_score = float(np.mean(scores))
     print(f'  Mean health score across composite: {mean_score:.3f}')
+
+    generate_health_report(scores, tiers, label, report_path)
 
     return composite, analyzed, scores
 

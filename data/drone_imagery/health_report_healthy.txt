@@ -1,0 +1,25 @@
+==========================================
+LEAF GUARDIAN HEALTH REPORT
+Site: healthy
+Date: 2026-07-01 12:03
+Grid: 6x6 (36 zones analyzed)
+==========================================
+SUMMARY
+Healthy zones:        27  (75%)
+Monitor zones:         5  (14%)
+Action Needed zones:   3  (8%)
+Critical zones:        1  (3%)
+Overall site health score: 0.67 / 1.00
+==========================================
+PRIORITY ZONES REQUIRING ATTENTION
+  Zone (2,6): ACTION NEEDED — Prioritize irrigation and inspect for pests or disease within 1 week
+  Zone (5,6): ACTION NEEDED — Prioritize irrigation and inspect for pests or disease within 1 week
+  Zone (6,5): ACTION NEEDED — Prioritize irrigation and inspect for pests or disease within 1 week
+  Zone (6,6): CRITICAL — Immediate intervention required — likely plant loss without action within 48 hours
+==========================================
+METHODOLOGY NOTE
+Health scores computed using two independent RGB indices: green/yellow/brown
+pixel ratio (HSV-based) and VARI (Visible Atmospherically Resistant Index,
+Gitelson et al. 2002). Scores represent visible-light health proxies only.
+NDVI camera recommended for confirmation of stressed zones.
+==========================================
