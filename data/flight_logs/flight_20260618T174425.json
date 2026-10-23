@@ -1,0 +1,75 @@
+{
+  "timestamp": "2026-06-18T17:44:25.478182Z",
+  "battery_start": 85,
+  "battery_end": 77,
+  "battery_used": 8,
+  "duration_seconds": 0.6,
+  "pattern": "lawnmower_3x3_50cm",
+  "grid": {
+    "rows": 3,
+    "cols": 3,
+    "step_cm": 50
+  },
+  "waypoints_flown": 9,
+  "photos": [
+    {
+      "waypoint_idx": 0,
+      "row": 1,
+      "col": 1,
+      "filename": "C:\\Users\\sunda\\leaf-guardian\\data\\drone_imagery\\survey\\1.1.jpg"
+    },
+    {
+      "waypoint_idx": 1,
+      "row": 2,
+      "col": 1,
+      "filename": "C:\\Users\\sunda\\leaf-guardian\\data\\drone_imagery\\survey\\2.1.jpg"
+    },
+    {
+      "waypoint_idx": 2,
+      "row": 3,
+      "col": 1,
+      "filename": "C:\\Users\\sunda\\leaf-guardian\\data\\drone_imagery\\survey\\3.1.jpg"
+    },
+    {
+      "waypoint_idx": 3,
+      "row": 3,
+      "col": 2,
+      "filename": "C:\\Users\\sunda\\leaf-guardian\\data\\drone_imagery\\survey\\3.2.jpg"
+    },
+    {
+      "waypoint_idx": 4,
+      "row": 2,
+      "col": 2,
+      "filename": "C:\\Users\\sunda\\leaf-guardian\\data\\drone_imagery\\survey\\2.2.jpg"
+    },
+    {
+      "waypoint_idx": 5,
+      "row": 1,
+      "col": 2,
+      "filename": "C:\\Users\\sunda\\leaf-guardian\\data\\drone_imagery\\survey\\1.2.jpg"
+    },
+    {
+      "waypoint_idx": 6,
+      "row": 1,
+      "col": 3,
+      "filename": "C:\\Users\\sunda\\leaf-guardian\\data\\drone_imagery\\survey\\1.3.jpg"
+    },
+    {
+      "waypoint_idx": 7,
+      "row": 2,
+      "col": 3,
+      "filename": "C:\\Users\\sunda\\leaf-guardian\\data\\drone_imagery\\survey\\2.3.jpg"
+    },
+    {
+      "waypoint_idx": 8,
+      "row": 3,
+      "col": 3,
+      "filename": "C:\\Users\\sunda\\leaf-guardian\\data\\drone_imagery\\survey\\3.3.jpg"
+    }
+  ],
+  "stitch": {
+    "composite": "C:\\Users\\sunda\\leaf-guardian\\data\\drone_imagery\\survey\\stitched_results\\composite_3x3.png",
+    "analyzed": "C:\\Users\\sunda\\leaf-guardian\\data\\drone_imagery\\survey\\stitched_results\\analyzed_3x3.png",
+    "mean_health_score": 1.0
+  }
+}
