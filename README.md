@@ -6,6 +6,8 @@ LEAF Guardian is a drone-based system that surveys native-plant restoration site
 
 Partner organization: **CA LEAF**, a California native-plant restoration nonprofit (50 volunteer hours, 200 native plants planted).
 
+📄 **[Read the full project proposal →](docs/PROJECT_PROPOSAL.md)**
+
 ---
 
 ## Table of contents
