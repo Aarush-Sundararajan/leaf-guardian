@@ -2,3 +2,6 @@ data/sentinel_data/*.tif
 data/sentinel_data/*.tif
 __pycache__/
 data/sentinel_data/2022_aug/
+
+# Unblurred originals of photos containing people — never commit
+data/drone_imagery/_private_originals/
