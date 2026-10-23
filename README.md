@@ -1,4 +1,4 @@
-# LEAF Guardian
+# LEAF Guardian - Initial Research
 
 **Low-cost drone monitoring of native plant health at restoration sites.**
 
